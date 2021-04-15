@@ -8,35 +8,155 @@
   <script language="javascript" type="text/javascript" src="zeilRace.js"></script>
   <!-- OK, YOU CAN MAKE CHANGES BELOW THIS LINE AGAIN -->
 
-  <!-- This line removes any default padding and style.
-       You might only need one of these values set. -->
-  <style> 
+<style>
   body { padding: 0; margin: 0; }
-  .loader {
-    border: 16px solid #f3f3f3;
-    border-radius: 50%;
-    border-top: 16px solid #3498db;
-    width: 120px;
-    height: 120px;
-    -webkit-animation: spin 2s linear infinite; /* Safari */
-    animation: spin 2s linear infinite;
+  @import url('https://fonts.googleapis.com/css?family=Space+Mono');
+
+  .loader__wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 1200px;
+  height: 800px;
+  /* background: linear-gradient(to bottom, #111 0%, #222 100%); */
+  background: white;
+}
+
+.cloud__wrapper {
+  z-index: 1;
+}
+
+.number__wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  width: 250px;
+  height: 100px;
+  position: absolute;
+  z-index:0;
+}
+
+.number {
+  /* background-color: black; */
+  font-family: "Space Mono";
+  font-size: 1em;
+  color: rgba(0, 0, 0, 0.8);
+  transform: translateX(-30px);
+  -webkit-animation: rising-numbers 0.7s linear infinite;
+          animation: rising-numbers 0.7s linear infinite;
+}
+.number::before {
+  content: "1";
+}
+.number:nth-child(even)::before {
+  content: "0";
+}
+.number:nth-child(2) {
+  -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s;
+}
+.number:nth-child(3) {
+  -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s;
+}
+.number:nth-child(4) {
+  -webkit-animation-delay: 0.6s;
+          animation-delay: 0.6s;
+}
+.number:nth-child(5) {
+  -webkit-animation-delay: 0.4s;
+          animation-delay: 0.4s;
+}
+.number:nth-child(6) {
+  -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s;
+}
+.number:nth-child(7) {
+  -webkit-animation-delay: 0.5s;
+          animation-delay: 0.5s;
+}
+.number:nth-child(8) {
+  -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s;
+}
+.number:nth-child(9) {
+  -webkit-animation-delay: 0.4s;
+          animation-delay: 0.4s;
+}
+.number:nth-child(10) {
+  -webkit-animation-delay: 0.7s;
+          animation-delay: 0.7s;
+}
+
+@-webkit-keyframes rising-numbers {
+  from {
+    transform: translateY(0px);
+    opacity: 1;
   }
-    
-  /* Safari */
-  @-webkit-keyframes spin {
-    0% { -webkit-transform: rotate(0deg); }
-    100% { -webkit-transform: rotate(360deg); }
+  to {
+    transform: translateY(300px);
+    opacity: 0;
   }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+}
+
+@keyframes rising-numbers {
+  from {
+    transform: translateY(0px);
+    opacity: 1;
   }
+  to {
+    transform: translateY(300px);
+    opacity: 0;
+  }
+}
+
   </style>
 </head>
 <body>
 <div id="p5_loading" class="loadingclass">
-  <div class="loader"></div>
+  <div class='loader__wrapper'>
+    <div class='cloud__wrapper'>
+      <svg  x="-100px" y="0px" width="400px" height="300px" viewBox="0 0 512 512" enable-background="new 0 0 512 512">
+        <defs>
+          <linearGradient id="MyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color=#EEEEEE stop-opacity="1"/>
+            <stop offset="100%" stop-color=#BBBBBB stop-opacity="1"/>
+          </linearGradient>
+          <linearGradient id="MyGradientStroke" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color=#BBBBBB stop-opacity="1"/>
+            <stop offset="100%" stop-color=#909090 stop-opacity="1"/>
+          </linearGradient>
+          <filter id="MyShadow" x="0" y="0" width="200%" height="200%">
+            <feOffset result="offOut" in=".1" dx="10" dy="10" />
+            <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+            <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+          </filter>
+        </defs>
+        <g stroke="url(#MyGradientStroke)" fill="url(#MyGradient)" filter = "url(#MyShadow)">
+          <path d="M441.953,142.352c-4.447-68.872-61.709-123.36-131.705-123.36c-59.481,0-109.766,39.346-126.264,93.429
+	c-9.244-3.5-19.259-5.431-29.729-5.431c-42.84,0-78.164,32.08-83.322,73.523c-0.309-0.004-0.614-0.023-0.924-0.023
+	c-36.863,0-66.747,29.883-66.747,66.747s29.883,66.746,66.747,66.746c4.386,0,8.669-0.436,12.819-1.243
+	c20.151,27.069,52.394,44.604,88.734,44.604c31.229,0,59.429-12.952,79.533-33.772c15.071,15.091,35.901,24.428,58.913,24.428
+	c31.43,0,58.783-17.42,72.955-43.127c11.676,5.824,24.844,9.106,38.777,9.106c48.047,0,86.998-38.949,86.998-86.996
+	C508.738,185.895,480.252,151.465,441.953,142.352z"/>
+        </g>
+      </svg>
+    </div>
+    <div class='number__wrapper'>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+      <div class='number'></div>
+    </div>
+  </div>
 </div>
 </body>
 </html>
