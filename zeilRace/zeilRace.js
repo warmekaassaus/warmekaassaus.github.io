@@ -52,7 +52,10 @@ function draw() {
   // draw vis of wind speeds. (squared cartesian product mapped to HSB color range)
   image(bgImage, 0, 0);
 
-  // funny workaround for gritty processing IDE which doesn't properly lint multiline foreaches
+  stroke(0);
+  fill(255);
+
+  // let all wind particles and sailboats do their time iteration
   windParticles.forEach(p => {
     p.blow();
     p.show();
@@ -61,6 +64,13 @@ function draw() {
     b.sail();
     b.show();
   });
+
+  // fade in
+  if (frameCount < 255) {
+    noStroke();
+    fill(255, 255, 255, 255 - 2 * frameCount);
+    rect(0, 0, w, h);
+  }
 }
 
 /**
