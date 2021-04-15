@@ -10,7 +10,6 @@
 
 <style>
   body { padding: 0; margin: 0; }
-  @import url('https://fonts.googleapis.com/css?family=Space+Mono');
 
   .loader__wrapper {
   display: flex;
@@ -40,7 +39,7 @@
 
 .number {
   /* background-color: black; */
-  font-family: "Space Mono";
+  font-family: "Lucida Console";
   font-size: 2em;
   color: rgba(80, 80, 240, 0.8);
   transform: translateX(-30px);
@@ -119,6 +118,9 @@
   <div class='loader__wrapper'>
     <div class='cloud__wrapper'>
       <svg  x="-100px" y="0px" width="400px" height="300px" viewBox="0 0 512 512" enable-background="new 0 0 512 512">
+        <style>
+          .wolken-tekstje {font-family: "Lucida Console"}
+        </style>
         <defs>
           <linearGradient id="MyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color=#EEEEEE stop-opacity="1"/>
@@ -142,6 +144,7 @@
 	c31.43,0,58.783-17.42,72.955-43.127c11.676,5.824,24.844,9.106,38.777,9.106c48.047,0,86.998-38.949,86.998-86.996
 	C508.738,185.895,480.252,151.465,441.953,142.352z"/>
         </g>
+        <text x="100" y="240" stroke="#5050A0" font-size="2em" class="wolken-tekstje">Generating wind...</text>
       </svg>
     </div>
     <div class='number__wrapper'>
