@@ -32,7 +32,7 @@ function setup() {
   createCanvas(w, h);
 
   // make wind particles
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 500; i++) {
     windParticles.push(new WindParticle());
   }
 
@@ -52,14 +52,16 @@ function draw() {
   // draw vis of wind speeds. (squared cartesian product mapped to HSB color range)
   image(bgImage, 0, 0);
 
-  stroke(0);
-  fill(255);
-
+  noFill();
+  
   // let all wind particles and sailboats do their time iteration
   windParticles.forEach(p => {
     p.blow();
     p.show();
   });
+  
+  fill(255);
+  stroke(0);
   sailboats.forEach(b => {
     b.sail();
     b.show();
@@ -142,8 +144,8 @@ class WindParticle {
 
   // respawn in some random location
   newPos() {
-    this.x = random(w);
-    this.y = random(h);
+    this.currentPos = createVector(random(w), random(h));
+    this.posses = [this.currentPos.copy];
   }
 
   blow() {
@@ -151,7 +153,7 @@ class WindParticle {
     this.life--;
 
     // check if this particle is either old or almost out of bounds, then respawn
-    if (this.life < 0 || this.x < 15 || this.x > w - 15 || this.y < 15 || this.y > h - 15) {
+    if (this.life < 0 || this.currentPos.x < 15 || this.currentPos.x > w - 15 || this.currentPos.y < 15 || this.currentPos.y > h - 15) {
       this.newPos();
       this.life = 100;
       return;
@@ -159,16 +161,25 @@ class WindParticle {
 
     // if not returned, let's get influenced by the wind at this location.
     // notice that the current pos is at least 15 from the wind map edge. no bound check necessary.
-    let wind = getWind(this.x, this.y);
-    this.x += wind.x;
-    this.y += wind.y;
+    let wind = getWind(this.currentPos.x, this.currentPos.y);
+    this.currentPos.x += wind.x;
+    this.currentPos.y += wind.y;
+    // only add new point every once in a while. because JS is slow! :)
+    if (this.life % 10 == 0) this.posses.push(createVector(this.currentPos.x, this.currentPos.y));
   }
 
   /**
-   * draws this wind particle as a little circle. bear in mind this doesn't set stroke or fill yet.
+   * draws this wind particle as a little circle. bear in mind this doesn't set strokeweight or fill
    */
   show() {
-    circle(this.x, this.y, 2);
+    stroke(50, this.life * 16);
+    beginShape();
+    this.posses.forEach((pt) => {
+      //circle(pt.x, pt.y, 2);
+      vertex(pt.x, pt.y);
+    });
+    vertex(this.currentPos.x, this.currentPos.y);
+    endShape();
   }
 }
 
