@@ -183,6 +183,11 @@ class WindParticle {
   }
 }
 
+function mouseDragged() {
+  sailboats[0].x = mouseX;
+  sailboats[0].y = mouseY;
+}
+
 class Sailboat {
   /**
    * id gebruikt om 'skill' te bepalen. GEZWEM moet wel beter kunnen zeilen.
@@ -197,7 +202,15 @@ class Sailboat {
     this.x = x + (random(100) - 50);
     this.y = y + (random(100) - 50);
     this.a = random(TWO_PI);
-    this.sailAngle = 0;
+    this.aVel = 0;
+    this.vForward = 0.0001;          // velocity in pixels per frame in forward direction
+    this.vAthwartships = 0.001;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
+    this.sailAngle = 0.0;
+    this.sheetTight = false;
+
+    // controls:
+    this.rudder = 0.0;           // angular velocity. positive = clockwise
+    this.sailAngleBound = .8;    // this is essentially the length of the sheet. limits sailAngle.
   }
 
   /**
@@ -209,10 +222,49 @@ class Sailboat {
       this.sink();
       return;
     }
-    // dumb physics:
+    // physics:
     let wind = getWind(this.x, this.y);
-    this.x += wind.x;
-    this.y += wind.y;
+
+    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
+    wind.x += this.vAthwartships;
+    wind.y += this.vForward;
+    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
+
+    // let wind push sail into sheet.
+    this.sailAngle += wind.mag() * wind.x  * .2;
+    this.sheetTight = false;
+    if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
+      this.sheetTight = true;
+      this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
+    }
+
+    // compute lift from sail
+    let sailForce = createVector(wind.x, -.75 * wind.y);
+    sailForce.rotate(this.sailAngle * .8);
+    if (this.sheetTight) {
+      // accelerate vessel
+      this.vAthwartships += sailForce.x * .24;
+      this.vForward += sailForce.y * .24;
+      // apply main sheet torque
+      this.aVel += sailForce.x * .002;
+    }
+
+    this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
+    this.a += this.aVel;
+
+    let step = createVector(this.vAthwartships, this.vForward);
+    step.rotate(this.a);
+
+    // aerodynamic drag (wind only, doesn't take into account own speed)
+    step.add(getWind(this.x, this.y).mult(.2));
+
+    this.x += step.x;
+    this.y += step.y;
+
+    // hydrodynamic drag
+    this.vAthwartships *= .01;
+    this.vForward *= .8;
+    this.aVel *= .5;
   }
   
   /**
