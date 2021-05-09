@@ -37,7 +37,7 @@ function setup() {
   }
 
   // make sailboats
-  for (let id = 0; id < 3; id++) {
+  for (let id = 0; id < 1; id++) {
     sailboats.push(new Sailboat(id, 300, h / 2.0));
   }
 
@@ -183,6 +183,11 @@ class WindParticle {
   }
 }
 
+function mouseDragged() {
+  sailboats[0].x = mouseX;
+  sailboats[0].y = mouseY;
+}
+
 class Sailboat {
   /**
    * id gebruikt om 'skill' te bepalen. GEZWEM moet wel beter kunnen zeilen.
@@ -196,8 +201,13 @@ class Sailboat {
     this.id = id;
     this.x = x + (random(100) - 50);
     this.y = y + (random(100) - 50);
-    this.a = random(TWO_PI);
-    this.sailAngle = 0;
+    //this.a = random(TWO_PI);
+    this.a = 0;
+    this.vForward = 0.0;          // velocity in pixels per frame in forward direction
+    this.vAthwartships = 0.0;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
+    this.rudder = 0.0;           // angular velocity. positive = clockwise
+    this.sailAngleBound = 1.0;    // this is essentially the length of the sheet. limits sailAngle.
+    this.sailAngle = 0.0;
   }
 
   /**
@@ -211,8 +221,33 @@ class Sailboat {
     }
     // dumb physics:
     let wind = getWind(this.x, this.y);
-    this.x += wind.x;
-    this.y += wind.y;
+
+    this.a += this.rudder;
+
+    let step = createVector(this.vAthwartships, this.vForward);
+    step.rotate(this.a);
+
+    this.x += step.x;
+    this.y += step.y;
+
+    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
+    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
+
+    // let wind push sail into sheet.
+    console.log(wind.x > 0.0);
+    this.sailAngle += wind.mag() * (-.1 + ((wind.x > 0.0) * .2));
+    if (this.sailAngle > this.sailAngleBound) this.sailAngle = this.sailAngleBound;
+    if (this.sailAngle < -this.sailAngleBound) this.sailAngle = -this.sailAngleBound;
+
+    let sailForce = createVector(wind.x, 0);
+    sailForce.rotate(this.sailAngle);
+    this.x += sailForce.x;
+    this.y += sailForce.y;
+
+
+    // drag
+    this.vAthwartships *= .3;
+    this.vForward *= .99;
   }
   
   /**
@@ -226,7 +261,15 @@ class Sailboat {
     // rotate by this boat's orientation
     rotate(this.a);
     // draw hull
-    triangle(-10, -10, 10, -10, 0, 20);
+    triangle(-20, -40, 20, -40, 0, 20);
+
+    // draw sail
+    strokeWeight(2);
+    noFill();
+    rotate(this.sailAngle);
+    curve(- 32 * this.sailAngle, 10, 0, 0, 0, -40, - 32 * this.sailAngle, -50);
+    //line(0, 0, 0, -40);
+
     // TODO draw more
 
     // pop projection matrix to return to default
