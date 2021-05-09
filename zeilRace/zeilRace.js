@@ -37,7 +37,7 @@ function setup() {
   }
 
   // make sailboats
-  for (let id = 0; id < 1; id++) {
+  for (let id = 0; id < 3; id++) {
     sailboats.push(new Sailboat(id, 300, h / 2.0));
   }
 
@@ -201,13 +201,16 @@ class Sailboat {
     this.id = id;
     this.x = x + (random(100) - 50);
     this.y = y + (random(100) - 50);
-    //this.a = random(TWO_PI);
-    this.a = 0;
-    this.vForward = 0.0;          // velocity in pixels per frame in forward direction
-    this.vAthwartships = 0.0;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
-    this.rudder = 0.0;           // angular velocity. positive = clockwise
-    this.sailAngleBound = 1.0;    // this is essentially the length of the sheet. limits sailAngle.
+    this.a = random(TWO_PI);
+    this.aVel = 0;
+    this.vForward = 0.0001;          // velocity in pixels per frame in forward direction
+    this.vAthwartships = 0.001;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
     this.sailAngle = 0.0;
+    this.sheetTight = false;
+
+    // controls:
+    this.rudder = 0.0;           // angular velocity. positive = clockwise
+    this.sailAngleBound = .8;    // this is essentially the length of the sheet. limits sailAngle.
   }
 
   /**
@@ -219,35 +222,49 @@ class Sailboat {
       this.sink();
       return;
     }
-    // dumb physics:
+    // physics:
     let wind = getWind(this.x, this.y);
 
-    this.a += this.rudder;
+    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
+    wind.x += this.vAthwartships;
+    wind.y += this.vForward;
+    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
+
+    // let wind push sail into sheet.
+    this.sailAngle += wind.mag() * wind.x  * .2;
+    this.sheetTight = false;
+    if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
+      this.sheetTight = true;
+      this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
+    }
+
+    // compute lift from sail
+    let sailForce = createVector(wind.x, -.75 * wind.y);
+    sailForce.rotate(this.sailAngle * .8);
+    if (this.sheetTight) {
+      // accelerate vessel
+      this.vAthwartships += sailForce.x * .24;
+      this.vForward += sailForce.y * .24;
+      // apply main sheet torque
+      this.aVel += sailForce.x * .002;
+    }
+
+    this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
+    this.a += this.aVel;
 
     let step = createVector(this.vAthwartships, this.vForward);
     step.rotate(this.a);
 
+    // aerodynamic drag (wind only, doesn't take into account own speed)
+    step.add(getWind(this.x, this.y).mult(.2));
+
     this.x += step.x;
     this.y += step.y;
 
-    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
-    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
-
-    // let wind push sail into sheet.
-    console.log(wind.x > 0.0);
-    this.sailAngle += wind.mag() * (-.1 + ((wind.x > 0.0) * .2));
-    if (this.sailAngle > this.sailAngleBound) this.sailAngle = this.sailAngleBound;
-    if (this.sailAngle < -this.sailAngleBound) this.sailAngle = -this.sailAngleBound;
-
-    let sailForce = createVector(wind.x, 0);
-    sailForce.rotate(this.sailAngle);
-    this.x += sailForce.x;
-    this.y += sailForce.y;
-
-
-    // drag
-    this.vAthwartships *= .3;
-    this.vForward *= .99;
+    // hydrodynamic drag
+    this.vAthwartships *= .01;
+    this.vForward *= .8;
+    this.aVel *= .5;
   }
   
   /**
@@ -263,12 +280,17 @@ class Sailboat {
     // draw hull
     triangle(-20, -40, 20, -40, 0, 20);
 
+    // TODO draw more static things, possibly depending on this.id
+
     // draw sail
-    strokeWeight(2);
+    strokeWeight(3);
     noFill();
-    rotate(this.sailAngle);
-    curve(- 32 * this.sailAngle, 10, 0, 0, 0, -40, - 32 * this.sailAngle, -50);
-    //line(0, 0, 0, -40);
+    rotate(this.sailAngle * .8);
+    if (this.sheetTight) {
+      curve(- 16 * this.sailAngle, 10, 0, 0, 0, -40, - 8 * this.sailAngle, -50);
+    } else {
+      curve(32 * random(-1, 1), 10, 0, 0, 0, -40, - 32 * this.sailAngle, -50);
+    }
 
     // TODO draw more
 
