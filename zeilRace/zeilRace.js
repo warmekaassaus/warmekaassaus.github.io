@@ -184,8 +184,10 @@ class WindParticle {
 }
 
 function mouseDragged() {
-  sailboats[0].x = mouseX;
-  sailboats[0].y = mouseY;
+  let diffVector = createVector(sailboats[0].x - mouseX, sailboats[0].y - mouseY).normalize();
+  sailboats[0].a = diffVector.heading() + PI / 2;
+  sailboats[0].x = mouseX + diffVector.x * 20;
+  sailboats[0].y = mouseY + diffVector.y * 20;
 }
 
 class Sailboat {
