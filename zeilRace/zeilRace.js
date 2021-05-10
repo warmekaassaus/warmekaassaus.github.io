@@ -294,22 +294,37 @@ class Sailboat {
     stroke(100, 40, 12);
     // bow sprit
     line(2, 15, 0, 32);
+
+    // teak deck caulking lines
+    push();
+    strokeWeight(.5);
+    noFill();
+    stroke(50, 20, 6);
+    for (let i = -4; i <= 4; i++) {
+      curve(-12 * i, -200, 2 * i, -40, 0, 25, -15 * i, 80);
+    }
+    pop();
+
     // rudder wheel
     line(-6, -30, 6, -30);
     line(-2, -28, 2, -28);
 
     strokeWeight(1);
     //hatch
+    
     rect(-6, -5, 12, -15);
 
+
+
     // TODO draw more static things, possibly depending on this.id
+
 
     stroke(220, 220, 200);
     strokeWeight(3);
     noFill();
 
     push();
-    // draw sail
+    // draw main sail
     rotate(this.sailAngle * .8);
     if (this.sheetTight) {
       curve(- 16 * this.sailAngle, 10, 0, 0, 0, -40, - 8 * this.sailAngle, -50);
@@ -317,6 +332,8 @@ class Sailboat {
       curve(32 * random(-1, 1), 10, 0, 0, 0, -40, - 32 * this.sailAngle, -50);
     }
     pop();
+
+    // draw forward sail
     push();
     translate(0, 30);
     rotate(this.sailAngle * .8);
