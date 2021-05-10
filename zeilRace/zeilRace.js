@@ -293,7 +293,14 @@ class Sailboat {
     // brown
     stroke(100, 40, 12);
     // bow sprit
-    line(2, 15, 0, 32);
+    line(0, 15, 0, 32);
+
+    // boom (giek)
+    push();
+    rotate(this.sailAngle *.8);
+    line(0, 0, 0, -40);
+    pop();
+
 
     // teak deck caulking lines
     push();
