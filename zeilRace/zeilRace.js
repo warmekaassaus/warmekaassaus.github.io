@@ -280,19 +280,78 @@ class Sailboat {
     // rotate by this boat's orientation
     rotate(this.a);
     // draw hull
-    triangle(-20, -40, 20, -40, 0, 20);
+    strokeWeight(1);
+    stroke(150, 100, 80);
+    fill(150, 100, 80);
+    triangle(-12, -40, 12, -40, 0, 24);
+    stroke(20);
+    strokeWeight(2);
+    curve(-50, -200, 12, -40, 0, 25, -80, 80);
+    curve(50, -200, -12, -40, 0, 25, 80, 80);
+    
+    // transom
+    line(-12, -40, 12, -40);
+
+    // brown
+    stroke(100, 40, 12);
+    // bow sprit
+    line(0, 15, 0, 32);
+
+    // boom (giek)
+    push();
+    rotate(this.sailAngle *.8);
+    line(0, 0, 0, -40);
+    pop();
+
+
+    // teak deck caulking lines
+    push();
+    strokeWeight(.5);
+    noFill();
+    stroke(50, 20, 6);
+    for (let i = -4; i <= 4; i++) {
+      curve(-12 * i, -200, 2 * i, -40, 0, 25, -15 * i, 80);
+    }
+    pop();
+
+    // rudder wheel
+    line(-6, -30, 6, -30);
+    line(-2, -28, 2, -28);
+
+    strokeWeight(1);
+    //hatch
+    
+    rect(-6, -5, 12, -15);
+
+
 
     // TODO draw more static things, possibly depending on this.id
 
-    // draw sail
+
+    stroke(220, 220, 200);
     strokeWeight(3);
     noFill();
+
+    push();
+    // draw main sail
     rotate(this.sailAngle * .8);
     if (this.sheetTight) {
       curve(- 16 * this.sailAngle, 10, 0, 0, 0, -40, - 8 * this.sailAngle, -50);
     } else {
       curve(32 * random(-1, 1), 10, 0, 0, 0, -40, - 32 * this.sailAngle, -50);
     }
+    pop();
+
+    // draw forward sail
+    push();
+    translate(0, 30);
+    rotate(this.sailAngle * .8);
+    if (this.sheetTight) {
+      curve(- 40 * this.sailAngle, 8, 0, 0, 0, -30, - 6 * this.sailAngle, -40);
+    } else {
+      curve(24 * random(-1, 1), 8, 0, 0, 0, -30, - 24 * this.sailAngle, -40);
+    }
+    pop();
 
     // TODO draw more
 
