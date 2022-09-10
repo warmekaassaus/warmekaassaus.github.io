@@ -100,7 +100,14 @@ function generateMap() {
     for (let y = 0.0; y < h; y++) {
       // generate perlin noise depth value (now in range [0..1])
       let depth = noise(x / 500, y / 500 + 5000);
-      // TODO make center always deep
+      
+      // heuristic to generally have sea in the center of the frame
+      let seaPreference = 1000 - createVector(x - w/2, y - h/2).mag();
+      // depth += (1 - depth) / max(Math.sqrt(((x - w/2) * (x - w/2) + (y - h/2) * (y - h/2))), 100);
+
+      depth *= seaPreference / 1000.0
+
+      depth += 0.15;
 
       // make range [0, 255] and write as shades of grey.
       // could be implemented using the pixels array for a speed improvement.
