@@ -14,7 +14,10 @@ let depthMap;
 
 // arrays to contain objects.
 var windParticles = [];
+var foamParticles = [];
 var sailboats = [];
+
+let reusableFoamIndex = 0;
 
 /**
  * Initial setup function. contains slow operations.
@@ -46,8 +49,13 @@ function setup() {
     windParticles.push(new WindParticle());
   }
 
+  // make foam particles
+  for (let i = 0; i < 500; i++) {
+    foamParticles.push(new FoamParticle());
+  }
+
   // make sailboats
-  for (let id = 0; id < 20; id++) {
+  for (let id = 0; id <5; id++) {
     sailboats.push(new Sailboat(id, 300, h / 2.0));
   }
 
@@ -66,9 +74,14 @@ function draw() {
   image(windImage, 0, 0);
   tint(255, 255);
 
+  // let all foam and wind particles and sailboats do their time iteration
+  foamParticles.forEach(p => {
+    p.flow();
+    p.show();
+  });
+
   noFill();
   
-  // let all wind particles and sailboats do their time iteration
   windParticles.forEach(p => {
     p.blow();
     p.show();
@@ -252,6 +265,47 @@ function mouseDragged() {
   sailboats[0].y = mouseY + diffVector.y * 20;
 }
 
+class FoamParticle {
+  constructor() {
+    this.pos = createVector(0, 0);
+    this.vel = createVector(0, 0);
+    this.size = random(4);    
+    this.life = 0;
+  }
+
+  respawn(x, y, vx, vy) {
+    this.pos = createVector(x, y);
+    this.vel = createVector(vx, vy);
+    this.life = 100;
+  }
+
+  flow() {
+
+    // check if this particle is old, then destroy itself
+    if (this.life > 0) {
+      // age one step
+      this.life--;
+      this.pos.add(this.vel);
+      this.vel.mult(0.99);
+    }
+  }
+
+  /**
+   * draws this foam particle as a little circle.
+   */
+  show() {
+    fill(200);
+    noStroke();
+    circle(this.pos.x, this.pos.y, this.size * this.life / 100.0);
+  }
+}
+
+function newFoamParticle(x, y, vx, vy) {
+  foamParticles[reusableFoamIndex].respawn(x, y, vx, vy);
+  reusableFoamIndex++;
+  if (reusableFoamIndex > foamParticles.length -1) reusableFoamIndex = 0;
+}
+
 class Sailboat {
   /**
    * id gebruikt om 'skill' te bepalen. GEZWEM moet wel beter kunnen zeilen.
@@ -344,6 +398,14 @@ class Sailboat {
    * TODO make look better. include sail, colors, make bob in waves maybe, etc.
    */
   show() {
+//    let step = createVector(this.vForward, random([-1, 1]) * this.vAthwartships);
+    let step = createVector(random([-0.7, 0.7]) * this.vForward, 0);
+    step.rotate(this.a);
+    let bow = createVector(0, 30).rotate(this.a).add(createVector(this.x, this.y));
+    let stern = createVector(0, -30).rotate(this.a).add(createVector(this.x, this.y));
+    newFoamParticle(bow.x, bow.y, step.x, step.y);
+    newFoamParticle(stern.x, stern.y, step.x, step.y);
+
     let woodColor = color(100, 40, 12, max(0, 255 - this.timeSunk));
     let deckColor = color(150, 100, 80, max(0, 255 - this.timeSunk));
     let hullColor = color(20, 20, 20, max(0, 255 - this.timeSunk));
