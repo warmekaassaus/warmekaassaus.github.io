@@ -4,7 +4,7 @@ const w = 1200;
 const h = 800;
 
 // objects containing images representing windspeedmap and both dimensions of wind
-let bgImage;
+let windImage;
 let horWindMap;
 let verWindMap;
 
@@ -18,7 +18,7 @@ var sailboats = [];
  * That's convenient for a loading animation.
  */
 function preload() {
-  bgImage = createImage(w, h);
+  windImage = createImage(w, h);
   horWindMap = createImage(w, h);
   verWindMap = createImage(w, h);
 
@@ -37,7 +37,7 @@ function setup() {
   }
 
   // make sailboats
-  for (let id = 0; id < 3; id++) {
+  for (let id = 0; id < 20; id++) {
     sailboats.push(new Sailboat(id, 300, h / 2.0));
   }
 
@@ -50,7 +50,7 @@ function setup() {
  */
 function draw() {
   // draw vis of wind speeds. (squared cartesian product mapped to HSB color range)
-  image(bgImage, 0, 0);
+  image(windImage, 0, 0);
 
   noFill();
   
@@ -83,7 +83,7 @@ function updateFlowField() {
   // get pixels arrays, prevents possible buggy behaviour when setting pixel values
   horWindMap.loadPixels();
   verWindMap.loadPixels();
-  bgImage.loadPixels();
+  windImage.loadPixels();
   for (let x = 0.0; x < w; x++) {
     for (let y = 0.0; y < h; y++) {
       // generate perlin noise wind fields, in vertical and horizontal values.
@@ -97,13 +97,13 @@ function updateFlowField() {
 
       // make fancy visualization. 
       // could be implemented using the pixels array for a speed improvement.
-      bgImage.set(x, y, colorFromWindSpeed(xVel - .5, yVel - .5));
+      windImage.set(x, y, colorFromWindSpeed(xVel - .5, yVel - .5));
     }
   }
   // write values just set to image object, should we want to draw them
   horWindMap.updatePixels();
   verWindMap.updatePixels();
-  bgImage.updatePixels();
+  windImage.updatePixels();
 }
 
 /**
