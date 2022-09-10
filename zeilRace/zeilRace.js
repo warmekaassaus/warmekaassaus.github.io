@@ -126,6 +126,10 @@ function colorFromDepth(depth) {
   }
 }
 
+function getDepth(x, y) {
+  return red(depthMap.get(x, y));
+}
+
 /**
  * Prepares the three images for later use.
  * Slow!! but it OK...
@@ -272,6 +276,11 @@ class Sailboat {
   sail() {
     // check edge of world; causes boat to sink
     if (this.x < 15 || this.x > w - 15 || this.y < 15 || this.y > h - 15) {
+      this.sink();
+      return;
+    }
+
+    if (getDepth(this.x, this.y) < 100) {
       this.sink();
       return;
     }
