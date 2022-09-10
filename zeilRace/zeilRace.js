@@ -264,6 +264,7 @@ class Sailboat {
     this.vAthwartships = 0.001;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
     this.sailAngle = 0.0;
     this.sheetTight = false;
+    this.timeSunk = 0;
 
     // controls:
     this.rudder = 0.0;           // angular velocity. positive = clockwise
@@ -277,51 +278,53 @@ class Sailboat {
     // check edge of world; causes boat to sink
     if (this.x < 15 || this.x > w - 15 || this.y < 15 || this.y > h - 15) {
       this.sink();
-      return;
     }
 
+    // check local water depth. Too shallow? sink.
     if (getDepth(this.x, this.y) < 100) {
       this.sink();
-      return;
-    }
-    // physics:
-    let wind = getWind(this.x, this.y);
-
-    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
-    wind.x += this.vAthwartships;
-    wind.y += this.vForward;
-    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
-
-    // let wind push sail into sheet.
-    this.sailAngle += wind.mag() * wind.x  * .2;
-    this.sheetTight = false;
-    if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
-      this.sheetTight = true;
-      this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
     }
 
-    // compute lift from sail
-    let sailForce = createVector(wind.x, -.75 * wind.y);
-    sailForce.rotate(this.sailAngle * .8);
-    if (this.sheetTight) {
-      // accelerate vessel
-      this.vAthwartships += sailForce.x * .24;
-      this.vForward += sailForce.y * .24;
-      // apply main sheet torque
-      this.aVel += sailForce.x * .002;
-    }
+    if (this.timeSunk <= 0) {
+      // physics:
+      let wind = getWind(this.x, this.y);
 
-    this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
-    this.a += this.aVel;
+      wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
+      wind.x += this.vAthwartships;
+      wind.y += this.vForward;
+      wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
 
-    let step = createVector(this.vAthwartships, this.vForward);
-    step.rotate(this.a);
+      // let wind push sail into sheet.
+      this.sailAngle += wind.mag() * wind.x  * .2;
+      this.sheetTight = false;
+      if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
+        this.sheetTight = true;
+        this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
+      }
 
-    // aerodynamic drag (wind only, doesn't take into account own speed)
-    step.add(getWind(this.x, this.y).mult(.2));
+      // compute lift from sail
+      let sailForce = createVector(wind.x, -.75 * wind.y);
+      sailForce.rotate(this.sailAngle * .8);
+      if (this.sheetTight) {
+        // accelerate vessel
+        this.vAthwartships += sailForce.x * .24;
+        this.vForward += sailForce.y * .24;
+        // apply main sheet torque
+        this.aVel += sailForce.x * .002;
+      }
 
-    this.x += step.x;
-    this.y += step.y;
+      this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
+      this.a += this.aVel;
+
+      let step = createVector(this.vAthwartships, this.vForward);
+      step.rotate(this.a);
+
+      // aerodynamic drag (wind only, doesn't take into account own speed)
+      step.add(getWind(this.x, this.y).mult(.2));
+
+      this.x += step.x;
+      this.y += step.y;
+  }
 
     // hydrodynamic drag
     this.vAthwartships *= .01;
@@ -333,6 +336,12 @@ class Sailboat {
    * TODO make look better. include sail, colors, make bob in waves maybe, etc.
    */
   show() {
+    let woodColor = color(100, 40, 12, max(0, 255 - this.timeSunk));
+    let deckColor = color(150, 100, 80, max(0, 255 - this.timeSunk));
+    let hullColor = color(20, 20, 20, max(0, 255 - this.timeSunk));
+    let caulkColor = color(50, 20, 6, max(0, 255 - this.timeSunk));
+    let sailColor = color(220, 220, 200, max(0, 255 - this.timeSunk));
+
     // push projection matrix
     push();
     // translate to boat center
@@ -341,10 +350,10 @@ class Sailboat {
     rotate(this.a);
     // draw hull
     strokeWeight(1);
-    stroke(150, 100, 80);
-    fill(150, 100, 80);
+    stroke(deckColor);
+    fill(deckColor);
     triangle(-12, -40, 12, -40, 0, 24);
-    stroke(20);
+    stroke(hullColor);
     strokeWeight(2);
     curve(-50, -200, 12, -40, 0, 25, -80, 80);
     curve(50, -200, -12, -40, 0, 25, 80, 80);
@@ -353,7 +362,7 @@ class Sailboat {
     line(-12, -40, 12, -40);
 
     // brown
-    stroke(100, 40, 12);
+    stroke(woodColor);
     // bow sprit
     line(0, 15, 0, 32);
 
@@ -368,7 +377,7 @@ class Sailboat {
     push();
     strokeWeight(.5);
     noFill();
-    stroke(50, 20, 6);
+    stroke(caulkColor);
     for (let i = -4; i <= 4; i++) {
       curve(-12 * i, -200, 2 * i, -40, 0, 25, -15 * i, 80);
     }
@@ -388,7 +397,7 @@ class Sailboat {
     // TODO draw more static things, possibly depending on this.id
 
 
-    stroke(220, 220, 200);
+    stroke(sailColor);
     strokeWeight(3);
     noFill();
 
@@ -423,6 +432,6 @@ class Sailboat {
    * TODO
    */
   sink() {
-    
+    this.timeSunk++;
   }
 }
