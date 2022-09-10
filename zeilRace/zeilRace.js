@@ -3,10 +3,14 @@ const w = 1200;
 // height of canvas
 const h = 800;
 
+let BEACH_COLOR;
+
 // objects containing images representing windspeedmap and both dimensions of wind
 let windImage;
 let horWindMap;
 let verWindMap;
+let mapImage;
+let depthMap;
 
 // arrays to contain objects.
 var windParticles = [];
@@ -21,8 +25,14 @@ function preload() {
   windImage = createImage(w, h);
   horWindMap = createImage(w, h);
   verWindMap = createImage(w, h);
+  mapImage = createImage(w, h);
+  depthMap = createImage(w, h);
+
+  BEACH_COLOR = color(245, 245, 220);
 
   updateFlowField();
+
+  generateMap();
 }
 
 /**
@@ -49,8 +59,12 @@ function setup() {
  * Method run for every browser frame. Used to time physics as well as redrawing objects.
  */
 function draw() {
+  // draw map
+  image(mapImage, 0, 0);
   // draw vis of wind speeds. (squared cartesian product mapped to HSB color range)
+  tint(255, 127);
   image(windImage, 0, 0);
+  tint(255, 255);
 
   noFill();
   
@@ -72,6 +86,43 @@ function draw() {
     noStroke();
     fill(255, 255, 255, 255 - 2 * frameCount);
     rect(0, 0, w, h);
+  }
+}
+
+/**
+ * Generates the map.
+ */
+function generateMap() {
+  depthMap.loadPixels();
+  mapImage.loadPixels();
+
+  for (let x = 0.0; x < w; x++) {
+    for (let y = 0.0; y < h; y++) {
+      // generate perlin noise depth value (now in range [0..1])
+      let depth = noise(x / 500, y / 500 + 5000);
+      // TODO make center always deep
+
+      // make range [0, 255] and write as shades of grey.
+      // could be implemented using the pixels array for a speed improvement.
+      depthMap.set(x, y, color(depth * 255));
+
+      // make fancy visualization. 
+      // could be implemented using the pixels array for a speed improvement.
+      mapImage.set(x, y, colorFromDepth(depth * 255));
+    }
+  }
+
+  depthMap.updatePixels();
+  mapImage.updatePixels();
+}
+
+function colorFromDepth(depth) {
+  if (depth > 100) {          // water case
+    return color(230 - depth, 230 - depth, 230);
+  } else if (depth > 80) {    // beach case
+    return BEACH_COLOR;
+  } else {                    // grass case
+    return color(depth, 200 - depth, depth);
   }
 }
 
