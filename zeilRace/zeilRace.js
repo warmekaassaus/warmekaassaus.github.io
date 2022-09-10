@@ -308,6 +308,7 @@ class Sailboat {
         this.sheetTight = true;
         this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
       }
+      if (wind.y > .5) this.sheetTight = false;
 
       // compute lift from sail
       let sailForce = createVector(wind.x, -.75 * wind.y);
