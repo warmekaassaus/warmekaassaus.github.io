@@ -3,14 +3,21 @@ const w = 1200;
 // height of canvas
 const h = 800;
 
+let BEACH_COLOR;
+
 // objects containing images representing windspeedmap and both dimensions of wind
-let bgImage;
+let windImage;
 let horWindMap;
 let verWindMap;
+let mapImage;
+let depthMap;
 
 // arrays to contain objects.
 var windParticles = [];
+var foamParticles = [];
 var sailboats = [];
+
+let reusableFoamIndex = 0;
 
 /**
  * Initial setup function. contains slow operations.
@@ -18,11 +25,17 @@ var sailboats = [];
  * That's convenient for a loading animation.
  */
 function preload() {
-  bgImage = createImage(w, h);
+  windImage = createImage(w, h);
   horWindMap = createImage(w, h);
   verWindMap = createImage(w, h);
+  mapImage = createImage(w, h);
+  depthMap = createImage(w, h);
+
+  BEACH_COLOR = color(245, 245, 220);
 
   updateFlowField();
+
+  generateMap();
 }
 
 /**
@@ -36,8 +49,13 @@ function setup() {
     windParticles.push(new WindParticle());
   }
 
+  // make foam particles
+  for (let i = 0; i < 500; i++) {
+    foamParticles.push(new FoamParticle());
+  }
+
   // make sailboats
-  for (let id = 0; id < 3; id++) {
+  for (let id = 0; id <5; id++) {
     sailboats.push(new Sailboat(id, 300, h / 2.0));
   }
 
@@ -49,12 +67,21 @@ function setup() {
  * Method run for every browser frame. Used to time physics as well as redrawing objects.
  */
 function draw() {
+  // draw map
+  image(mapImage, 0, 0);
   // draw vis of wind speeds. (squared cartesian product mapped to HSB color range)
-  image(bgImage, 0, 0);
+  tint(255, 127);
+  image(windImage, 0, 0);
+  tint(255, 255);
+
+  // let all foam and wind particles and sailboats do their time iteration
+  foamParticles.forEach(p => {
+    p.flow();
+    p.show();
+  });
 
   noFill();
   
-  // let all wind particles and sailboats do their time iteration
   windParticles.forEach(p => {
     p.blow();
     p.show();
@@ -76,6 +103,54 @@ function draw() {
 }
 
 /**
+ * Generates the map.
+ */
+function generateMap() {
+  depthMap.loadPixels();
+  mapImage.loadPixels();
+
+  for (let x = 0.0; x < w; x++) {
+    for (let y = 0.0; y < h; y++) {
+      // generate perlin noise depth value (now in range [0..1])
+      let depth = noise(x / 500, y / 500 + 5000);
+      
+      // heuristic to generally have sea in the center of the frame
+      let seaPreference = 1000 - createVector(x - w/2, y - h/2).mag();
+      // depth += (1 - depth) / max(Math.sqrt(((x - w/2) * (x - w/2) + (y - h/2) * (y - h/2))), 100);
+
+      depth *= seaPreference / 1000.0
+
+      depth += 0.15;
+
+      // make range [0, 255] and write as shades of grey.
+      // could be implemented using the pixels array for a speed improvement.
+      depthMap.set(x, y, color(depth * 255));
+
+      // make fancy visualization. 
+      // could be implemented using the pixels array for a speed improvement.
+      mapImage.set(x, y, colorFromDepth(depth * 255));
+    }
+  }
+
+  depthMap.updatePixels();
+  mapImage.updatePixels();
+}
+
+function colorFromDepth(depth) {
+  if (depth > 100) {          // water case
+    return color(230 - depth, 230 - depth, 230);
+  } else if (depth > 80) {    // beach case
+    return BEACH_COLOR;
+  } else {                    // grass case
+    return color(depth, 200 - depth, depth);
+  }
+}
+
+function getDepth(x, y) {
+  return red(depthMap.get(x, y));
+}
+
+/**
  * Prepares the three images for later use.
  * Slow!! but it OK...
  */
@@ -83,7 +158,7 @@ function updateFlowField() {
   // get pixels arrays, prevents possible buggy behaviour when setting pixel values
   horWindMap.loadPixels();
   verWindMap.loadPixels();
-  bgImage.loadPixels();
+  windImage.loadPixels();
   for (let x = 0.0; x < w; x++) {
     for (let y = 0.0; y < h; y++) {
       // generate perlin noise wind fields, in vertical and horizontal values.
@@ -97,13 +172,13 @@ function updateFlowField() {
 
       // make fancy visualization. 
       // could be implemented using the pixels array for a speed improvement.
-      bgImage.set(x, y, colorFromWindSpeed(xVel - .5, yVel - .5));
+      windImage.set(x, y, colorFromWindSpeed(xVel - .5, yVel - .5));
     }
   }
   // write values just set to image object, should we want to draw them
   horWindMap.updatePixels();
   verWindMap.updatePixels();
-  bgImage.updatePixels();
+  windImage.updatePixels();
 }
 
 /**
@@ -190,6 +265,47 @@ function mouseDragged() {
   sailboats[0].y = mouseY + diffVector.y * 20;
 }
 
+class FoamParticle {
+  constructor() {
+    this.pos = createVector(0, 0);
+    this.vel = createVector(0, 0);
+    this.size = random(4);    
+    this.life = 0;
+  }
+
+  respawn(x, y, vx, vy) {
+    this.pos = createVector(x, y);
+    this.vel = createVector(vx, vy);
+    this.life = 100;
+  }
+
+  flow() {
+
+    // check if this particle is old, then destroy itself
+    if (this.life > 0) {
+      // age one step
+      this.life--;
+      this.pos.add(this.vel);
+      this.vel.mult(0.99);
+    }
+  }
+
+  /**
+   * draws this foam particle as a little circle.
+   */
+  show() {
+    fill(200);
+    noStroke();
+    circle(this.pos.x, this.pos.y, this.size * this.life / 100.0);
+  }
+}
+
+function newFoamParticle(x, y, vx, vy) {
+  foamParticles[reusableFoamIndex].respawn(x, y, vx, vy);
+  reusableFoamIndex++;
+  if (reusableFoamIndex > foamParticles.length -1) reusableFoamIndex = 0;
+}
+
 class Sailboat {
   /**
    * id gebruikt om 'skill' te bepalen. GEZWEM moet wel beter kunnen zeilen.
@@ -209,6 +325,7 @@ class Sailboat {
     this.vAthwartships = 0.001;     // velocity in pixels per frame right-angled to forward. (bakboord = positief)
     this.sailAngle = 0.0;
     this.sheetTight = false;
+    this.timeSunk = 0;
 
     // controls:
     this.rudder = 0.0;           // angular velocity. positive = clockwise
@@ -222,46 +339,54 @@ class Sailboat {
     // check edge of world; causes boat to sink
     if (this.x < 15 || this.x > w - 15 || this.y < 15 || this.y > h - 15) {
       this.sink();
-      return;
-    }
-    // physics:
-    let wind = getWind(this.x, this.y);
-
-    wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
-    wind.x += this.vAthwartships;
-    wind.y += this.vForward;
-    wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
-
-    // let wind push sail into sheet.
-    this.sailAngle += wind.mag() * wind.x  * .2;
-    this.sheetTight = false;
-    if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
-      this.sheetTight = true;
-      this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
     }
 
-    // compute lift from sail
-    let sailForce = createVector(wind.x, -.75 * wind.y);
-    sailForce.rotate(this.sailAngle * .8);
-    if (this.sheetTight) {
-      // accelerate vessel
-      this.vAthwartships += sailForce.x * .24;
-      this.vForward += sailForce.y * .24;
-      // apply main sheet torque
-      this.aVel += sailForce.x * .002;
+    // check local water depth. Too shallow? sink.
+    if (getDepth(this.x, this.y) < 100) {
+      this.sink();
     }
 
-    this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
-    this.a += this.aVel;
+    if (this.timeSunk <= 0) {
+      // physics:
+      let wind = getWind(this.x, this.y);
 
-    let step = createVector(this.vAthwartships, this.vForward);
-    step.rotate(this.a);
+      wind.rotate(-this.a);             // wind now contains wind in (athwartships (naar bakboord = positief), along (naar voorsteven = positief))
+      wind.x += this.vAthwartships;
+      wind.y += this.vForward;
+      wind.rotate(-this.sailAngle);     // wind now contains wind in (haaks op zeil (naar stuurbood = positief), en in verlengde (naar voorlijk = positief))
 
-    // aerodynamic drag (wind only, doesn't take into account own speed)
-    step.add(getWind(this.x, this.y).mult(.2));
+      // let wind push sail into sheet.
+      this.sailAngle += wind.mag() * wind.x  * .2;
+      this.sheetTight = false;
+      if (this.sailAngle > this.sailAngleBound || this.sailAngle < -this.sailAngleBound) {
+        this.sheetTight = true;
+        this.sailAngle = this.sailAngle > 0 ? this.sailAngleBound : - this.sailAngleBound;
+      }
+      if (wind.y > .5) this.sheetTight = false;
 
-    this.x += step.x;
-    this.y += step.y;
+      // compute lift from sail
+      let sailForce = createVector(wind.x, -.75 * wind.y);
+      sailForce.rotate(this.sailAngle * .8);
+      if (this.sheetTight) {
+        // accelerate vessel
+        this.vAthwartships += sailForce.x * .24;
+        this.vForward += sailForce.y * .24;
+        // apply main sheet torque
+        this.aVel += sailForce.x * .002;
+      }
+
+      this.aVel += this.rudder * (this.vAthwartships * this.vAthwartships + this.vForward * this.vForward);
+      this.a += this.aVel;
+
+      let step = createVector(this.vAthwartships, this.vForward);
+      step.rotate(this.a);
+
+      // aerodynamic drag (wind only, doesn't take into account own speed)
+      step.add(getWind(this.x, this.y).mult(.2));
+
+      this.x += step.x;
+      this.y += step.y;
+  }
 
     // hydrodynamic drag
     this.vAthwartships *= .01;
@@ -273,6 +398,20 @@ class Sailboat {
    * TODO make look better. include sail, colors, make bob in waves maybe, etc.
    */
   show() {
+//    let step = createVector(this.vForward, random([-1, 1]) * this.vAthwartships);
+    let step = createVector(random([-0.7, 0.7]) * this.vForward, 0);
+    step.rotate(this.a);
+    let bow = createVector(0, 30).rotate(this.a).add(createVector(this.x, this.y));
+    let stern = createVector(0, -30).rotate(this.a).add(createVector(this.x, this.y));
+    newFoamParticle(bow.x, bow.y, step.x, step.y);
+    newFoamParticle(stern.x, stern.y, step.x, step.y);
+
+    let woodColor = color(100, 40, 12, max(0, 255 - this.timeSunk));
+    let deckColor = color(150, 100, 80, max(0, 255 - this.timeSunk));
+    let hullColor = color(20, 20, 20, max(0, 255 - this.timeSunk));
+    let caulkColor = color(50, 20, 6, max(0, 255 - this.timeSunk));
+    let sailColor = color(220, 220, 200, max(0, 255 - this.timeSunk));
+
     // push projection matrix
     push();
     // translate to boat center
@@ -281,10 +420,10 @@ class Sailboat {
     rotate(this.a);
     // draw hull
     strokeWeight(1);
-    stroke(150, 100, 80);
-    fill(150, 100, 80);
+    stroke(deckColor);
+    fill(deckColor);
     triangle(-12, -40, 12, -40, 0, 24);
-    stroke(20);
+    stroke(hullColor);
     strokeWeight(2);
     curve(-50, -200, 12, -40, 0, 25, -80, 80);
     curve(50, -200, -12, -40, 0, 25, 80, 80);
@@ -293,7 +432,7 @@ class Sailboat {
     line(-12, -40, 12, -40);
 
     // brown
-    stroke(100, 40, 12);
+    stroke(woodColor);
     // bow sprit
     line(0, 15, 0, 32);
 
@@ -308,7 +447,7 @@ class Sailboat {
     push();
     strokeWeight(.5);
     noFill();
-    stroke(50, 20, 6);
+    stroke(caulkColor);
     for (let i = -4; i <= 4; i++) {
       curve(-12 * i, -200, 2 * i, -40, 0, 25, -15 * i, 80);
     }
@@ -328,7 +467,7 @@ class Sailboat {
     // TODO draw more static things, possibly depending on this.id
 
 
-    stroke(220, 220, 200);
+    stroke(sailColor);
     strokeWeight(3);
     noFill();
 
@@ -363,6 +502,6 @@ class Sailboat {
    * TODO
    */
   sink() {
-    
+    this.timeSunk++;
   }
 }
